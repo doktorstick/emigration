@@ -1,0 +1,55 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Mod id="6654d7ec-1b0a-45b0-b7f5-307a2e30d833" version="5">
+  <Properties>
+    <Name>Emigration</Name>
+    <Stability>Beta</Stability>
+    <Teaser>People migrate between cities and countries seeking a better life.</Teaser>
+    <Description>Immigrants are attracted by happiness, productivity and culture of your empire. People migrate from city to city inside your empire and also to/from foreign cities. Policies affect migration in different ways. For more details, see the mod's homepage:
+[NEWLINE]
+[NEWLINE]http://folu.me/Emigration</Description>
+    <Authors>killmeplease</Authors>
+    <SpecialThanks>Afforess, alpaca, Bhruic, gmJamez, Sneaks, Thalassicus, whoward69</SpecialThanks>
+    <HideSetupGame>0</HideSetupGame>
+    <Homepage>http://folu.me/Emigration</Homepage>
+    <AffectsSavedGames>0</AffectsSavedGames>
+    <SupportsSinglePlayer>1</SupportsSinglePlayer>
+    <SupportsMultiplayer>0</SupportsMultiplayer>
+    <SupportsHotSeat>1</SupportsHotSeat>
+    <SupportsMac>1</SupportsMac>
+    <ReloadLandmarkSystem>0</ReloadLandmarkSystem>
+    <ReloadStrategicViewSystem>0</ReloadStrategicViewSystem>
+    <ReloadUnitSystem>0</ReloadUnitSystem>
+  </Properties>
+  <Dependencies />
+  <References />
+  <Blocks />
+  <Files>
+    <File md5="155E43834C7767803378678E974CD312" import="1">Lua/CustomNotifications/ClassUtils.lua</File>
+    <File md5="406E93642C7B0BE3EEF66DD114CE0C74" import="1">Lua/CustomNotifications/CustomNotification.lua</File>
+    <File md5="2F2947CD72FC50AF9A7FBC76464BAF22" import="1">Lua/CustomNotifications/NotificationPanel.lua</File>
+    <File md5="14EC7177121D7DF32BACD32278F3FEBC" import="1">Lua/Emigration.lua</File>
+    <File md5="B9B40619ED80A1B1075490E2063C2AC8" import="1">Lua/Prosperity.lua</File>
+    <File md5="A539FA28DF4B17D1A19E6B6A025DE5A1" import="1">Lua/ScriptDataManager.lua</File>
+    <File md5="5085BE7D0209A8E111608F2F0BE55E57" import="1">Lua/ScriptDataUtils.lua</File>
+    <File md5="EF168BCDC65540EFCDC9A26D8862C0AC" import="1">UI/Emigration.xml</File>
+    <File md5="249884217BF3793D864F496B1FBA93E6" import="1">UI/InGame/CityView/CityView.lua</File>
+    <File md5="2B1F0E72C503B9FB7F7308C067C9EE09" import="1">UI/InGame/CityView/CityView.xml</File>
+    <File md5="95712478CC1238AF82F2DB29D437220B" import="1">UI/InGame/CityView/CityView_small.xml</File>
+    <File md5="99E895123A08C1FEEC06D3E4C5E6AE15" import="0">XML/EmigrationSettings.xml</File>
+    <File md5="298C46D7CC01A0CA2EF3A559B03855DE" import="0">XML/Text.xml</File>
+    <File md5="1FE4967D6FD2C6AB37295DDC658F0FEA" import="0">XML/Handicaps.xml</File>
+  </Files>
+  <Actions>
+    <OnModActivated>
+      <UpdateDatabase>XML/EmigrationSettings.xml</UpdateDatabase>
+      <UpdateDatabase>XML/Handicaps.xml</UpdateDatabase>
+      <UpdateDatabase>XML/Text.xml</UpdateDatabase>
+    </OnModActivated>
+  </Actions>
+  <EntryPoints>
+    <EntryPoint type="NotificationAddin" file="Lua/Emigration.lua">
+      <Name>Emigration.lua</Name>
+      <Description>Emigration.lua</Description>
+    </EntryPoint>
+  </EntryPoints>
+</Mod>
