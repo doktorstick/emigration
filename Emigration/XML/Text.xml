@@ -4,10 +4,10 @@
 	<!-- ENGLISH -->
 	<Language_en_US>
 		<Row Tag="TXT_KEY_EMIGRATION_SUMMARY"> 
-			<Text>A [ICON_CITIZEN] citizen from {1_From} left for the {2_To}.</Text>
+			<Text>A [ICON_CITIZEN] citizen from {1_From} ([ICON_FLOWER] {3_Num}) left for the {2_To} ([ICON_FLOWER] {4_Num}).</Text>
 		</Row>
 		<Row Tag="TXT_KEY_IMMIGRATION_SUMMARY">
-			<Text>A [ICON_CITIZEN] citizen from the {1_From} came to {2_To}.</Text>
+			<Text>A [ICON_CITIZEN] citizen from {1_From} ([ICON_FLOWER] {3_Num}) came to {2_To} ([ICON_FLOWER] {4_Num}).</Text>
 		</Row>
 		<Row Tag="TXT_KEY_EMIGRATION_TEXT">
 			<Text>Emigration to the {1_To}.</Text>

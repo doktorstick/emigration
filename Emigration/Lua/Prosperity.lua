@@ -70,6 +70,17 @@ function GetProsperity(city)	-- local + macro prosperity
 	return GetLocalProsperity(city) + GetMacroProsperity(player);
 end
 --------------------------------------------------------------
+function GetProsperityDebugString(city)
+  local player = Players[city:GetOwner()]
+  return string.format("%-15s TP:%4.1f EH:%4.1f LH:%4.1f PR:%4.1f C:%4.1f F:%4.1f",
+    city:GetName(), GetProsperity(city), 
+    GetProsperityFromHappiness(player),
+    GetProsperityFromLocalHappiness(city),
+    GetProsperityFromProductiveness(city),
+    GetProsperityFromCulture(player),
+    GetProsperityFromFreedom(player))
+end
+--------------------------------------------------------------
 -- CITYVIEW PROSPERITY TOOLTIP
 --------------------------------------------------------------
 function GetProsperityTooltip(pCity)
