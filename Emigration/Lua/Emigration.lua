@@ -16,19 +16,38 @@ local iDistanceLogBase 	= GameInfo.EmigrationSettings["DistanceFactorLogBase"].V
 local AutocracyModifier = GameInfo.EmigrationSettings["AutocracyModifier"].Value / 100;	-- applied to emigration probability
 local OrderModifier		= GameInfo.EmigrationSettings["OrderModifier"].Value / 100;	-- reduces city's weight on immigration
 -- variables
+local PatriotismModifier = GameInfo.EmigrationSettings["PatriotismModifier"].Value / 100; -- reduces foreign city's weight
 local notifications = {};	-- list of notifications to be shown on a player's turn (cant show on PlayerDoTurn because of error)
 --------------------------------------------------------------
 -- FUNCTIONS
 --------------------------------------------------------------
+function IsCityMigrationAllowed (toCity, fromTeam)
+  if not toCity then return false end
+  
+  print(string.format("%15s revealed=%s food=%+d blockaded=%s resist=%s razing=%s",
+    toCity:GetName(), 
+    tostring(toCity:IsRevealed(fromTeam)), 
+    toCity:FoodDifference(),
+    tostring(toCity:IsBlockaded()), 
+    tostring(toCity:IsResistance()), 
+    tostring(toCity:IsRazing())))
+    
+  return toCity:IsRevealed(fromTeam)
+           and toCity:FoodDifference() >= 0
+           and not toCity:IsBlockaded()
+           and not toCity:IsResistance()
+           and not toCity:IsRazing()
+  end
+--------------------------------------------------------------
 function GetProsperityRating(player)
 	--print("updating prosperity rating");
-	local team = Teams[player:GetTeam()];
+	local team = player:GetTeam();
 	local prosperityRating = {};	-- list of the cities of the world ordered by prosperity: {prosp, city}
   for n, host in pairs(Players) do
      if IsValid(host) and MetAndNoWar(player, host) then
 			local macroProsp = GetMacroProsperity(host);
 			for city in host:Cities() do
-				if not city:IsRazing() and not city:IsResistance() and not city:IsBlockaded() and city:FoodDifference() >= 0 then
+        if IsCityMigrationAllowed(city, team) then
 					local prosp = GetLocalProsperity(city) + macroProsp;
 					table.insert(prosperityRating, {prosp = prosp, city = city});
 				end
@@ -36,6 +55,7 @@ function GetProsperityRating(player)
 		end
 	end
 	table.sort(prosperityRating, function(c1, c2) return c1.prosp > c2.prosp end);	-- sort cities by prosperity in descending order
+  print ("----------------- RETURN PROSP RATING ----------------")
 	return prosperityRating;
 end
 --------------------------------------------------------------
@@ -43,7 +63,15 @@ function HasMetWar(playerA, playerB)
   if playerA == playerB then return true, false end
 	local teamA = Teams[playerA:GetTeam()];
 	local teamB = Teams[playerB:GetTeam()];
-  return teamA:IsHasMet(teamB), teamA:IsAtWar(teamB)
+  --[[
+  print(string.format("playerA=%s teamA=%s teamAIdx=%s playerB=%s teamB=%s teamBIdx=%s",
+    playerA:GetName(), tostring(teamA), tostring(playerA:GetTeam()),
+    playerB:GetName(), tostring(teamB), tostring(playerB:GetTeam())))
+  print(string.format("met=%s metTeamByIdx=%s war=%s warTeamByIdx=%s",
+    tostring(teamA:IsHasMet(teamB)), tostring(teamA:IsHasMet(playerB:GetTeam())),
+    tostring(teamA:IsAtWar(teamB)), tostring(teamA:IsAtWar(playerB:GetTeam()))))
+  --]]
+  return teamA:IsHasMet(playerB:GetTeam()), teamA:IsAtWar(playerB:GetTeam())
 end
 function MetAndNoWar(playerA, playerB)
   local met, war = HasMetWar(playerA, playerB)
@@ -103,10 +131,10 @@ function Migration(iPlayer)		-- executed at the start of an each player's turn
       local nextEmigrationTurn = lastEmigrationTurn + CooldownTurns
       
       if dPop > 0 and iOldPopulation > 0 then
-        print(string.format("%-15s growth hysteresis (no migration)", city:GetName()))
+        --print(string.format("%-15s growth hysteresis (no migration)", city:GetName()))
       elseif Game.GetGameTurn() <= nextEmigrationTurn then
-        print(string.format("%-15s recent migration hysteresis (no migration until turn %d)",
-          city:GetName(), nextEmigrationTurn+1))
+        --print(string.format("%-15s recent migration hysteresis (no migration until turn %d)",
+        --  city:GetName(), nextEmigrationTurn+1))
       else
         local maxDiff = maxProsp - rec.prosp;
         --print("maxDiff = "..maxDiff);
@@ -138,7 +166,7 @@ function Migration(iPlayer)		-- executed at the start of an each player's turn
 end
 --------------------------------------------------------------
 function GetDestinationCity(data, numBetterCities, maxDist, player)
-	print("---------GET DESTINATION-------------")
+	--print("---------GET DESTINATION-------------")
 
 	-- generate a city-specific weights (considering distance)
 	local weights = {};
@@ -148,20 +176,18 @@ function GetDestinationCity(data, numBetterCities, maxDist, player)
 	local fromY = fromCity:GetY();
 	local sumWgt = 0;
   
-  print("Migrants from " .. fromCity:GetName() .. " are considering " .. numBetterCities .. " better cities.")
+  --print("Migrants from " .. fromCity:GetName() .. " are considering " .. numBetterCities .. " better cities.")
 	--print(" - num better cities = " .. numBetterCities);
 	for i = 1, numBetterCities do
 		local toCity = data[i].city;
 		local toPlayer = Players[toCity:GetOwner()];
 		local dist = iDistanceLogBase;
-    -- Similarly to Statue of Liberty, consider your nation as attractive.
-    -- The inertia to leave your country should be hard to overcome.
-		local hasSoL = hasSOL(toPlayer) or player == toPlayer;
+		local hasSoL = hasSOL(toPlayer);
 		local wgt = 0;
 		local dprosp = data[i].prosp - fromProsp;
 		--print(toCity:GetName() .. " delta prosp = " .. dprosp);
 		--if hasSoL then
-		--  print(" - " .. toCity:GetName() .. "'s owner has SoL (or same nation)");
+		--  print(" - " .. toCity:GetName() .. "'s owner has SoL");
 		--end
 		if fromCity:GetOwner() ~= toCity:GetOwner() and not hasSoL then	-- calc dist if its a foreign city and its owner doesnt have SoL
 			dist = Map.PlotDistance(fromX, fromY, toCity:GetX(), toCity:GetY());
@@ -180,6 +206,16 @@ function GetDestinationCity(data, numBetterCities, maxDist, player)
 		--else
 		--	print(" - no order");
 		end
+    
+    -- The inertia to leave your own country should be a bit higher. Someone would
+    -- much rather relocate to another state, for instance, instead of moving to
+    -- a different culture and a different language.
+    if fromCity:GetOwner() ~= toCity:GetOwner() then
+      -- Reduce all others to keep exponential scaling down.
+      --print(" - reducing foreign city weight by " .. PatriotismModifier)
+      wgt = wgt / (1 + PatriotismModifier)
+    end
+    
 		wgt = wgt * wgt;
 		sumWgt = sumWgt + wgt;
 		weights[i] = wgt;
@@ -200,7 +236,7 @@ function GetDestinationCity(data, numBetterCities, maxDist, player)
 		end
 	end
   
-	print("-------------------------------------")
+	--print("-------------------------------------")
 	return retCity, retProsp;
 end
 --------------------------------------------------------------
@@ -243,19 +279,22 @@ function MoveCitizen(fromCity, toCity, fromProsp, toProsp)
   local destination = GetPlayerName(toPlayer);
 		--local summary = "A [ICON_CITIZEN] citizen from " .. fromCity:GetName() .. " left for the " .. destination;
 		--print("creating a notification");
-		local smr = Locale.ConvertTextKey("TXT_KEY_EMIGRATION_SUMMARY", fromCity:GetName(), destination .. debugMetWar, fromProsp, toProsp);
+		local smr = Locale.ConvertTextKey("TXT_KEY_EMIGRATION_SUMMARY", fromCity:GetName(), destination .. debugMetWar, 
+      string.format("%.1f", fromProsp), string.format ("%.1f", toProsp));
 		local txt = Locale.ConvertTextKey("TXT_KEY_EMIGRATION_TEXT", destination);
 		table.insert(notifications, { type = "Emigration", text = txt, summary = smr, city = fromCity });
 	elseif toPlayer:IsHuman() then
 		local source = fromCity:GetName();
 		if fromPlayer ~= toPlayer then
-      -- DS: Ideally, need a new TXT_KEY for this case. The original author was lazy, too, and
-      -- overloaded the TXT_KEY ("the Roman Empire" or "the Boston", as examples)
+      -- DS: Ideally, need a new TXT_KEYs for this case. The original author was lazy, too, and
+      -- overloaded the TXT_KEY ("the Roman Empire" or "the Boston", as good and bad examples).
+      -- I also did not update non-English translations parameters.
 			source = "the " .. GetPlayerName(fromPlayer);
 		end
     
 		--local summary = "A [ICON_CITIZEN] citizen from " .. source .. " came to " .. toCity:GetName();
-		local smr = Locale.ConvertTextKey("TXT_KEY_IMMIGRATION_SUMMARY", source .. debugMetWar, toCity:GetName(), fromProsp, toProsp);
+		local smr = Locale.ConvertTextKey("TXT_KEY_IMMIGRATION_SUMMARY", source .. debugMetWar, toCity:GetName(),
+      string.format("%.1f", fromProsp), string.format ("%.1f", toProsp));
 		local txt = Locale.ConvertTextKey("TXT_KEY_IMMIGRATION_TEXT", source);
 		table.insert(notifications, { type = "Immigration", text = txt, summary = smr, city = toCity });
 	end
@@ -272,17 +311,22 @@ end
 function OnPopulationChange(iHexX, iHexY, iPopulation, iUnknown)
   local pPlot = Map.GetPlot(ToGridFromHex(iHexX, iHexY))
   local pCity = pPlot:GetPlotCity()
-  local iOwner = pCity:GetOwner()
-
+  
   -- This will fire on the from- and to-cities, but we only
   -- want to do something for the from-city.
   local modData = AccessData(pPlot, "Emigration");
   local iOldPopulation = modData.lastPopulation or 0
   
   local dPop = iPopulation - iOldPopulation
-  print(string.format("%s (owned by %s) population %d (%+d)", 
-    pCity:GetName(), Players[iOwner]:GetName(), iPopulation, dPop))
 
+  --[[
+  if pCity then
+    local iOwner = pCity:GetOwner()
+    print(string.format("%s (owned by %s) population %d (%+d)", 
+      pCity:GetName(), Players[iOwner]:GetName(), iPopulation, dPop))
+  end
+  --]]
+  
   modData.lastPopulation = iPopulation
   SaveData(pPlot)
 end

@@ -43,6 +43,11 @@
 			<Type>OrderModifier</Type>
 			<Value>50</Value>
 		</Row>
+    <Row>
+      <!-- desire to remain in home country -->
+      <Type>PatriotismModifier</Type>
+      <Value>25</Value>
+    </Row>
 		<Row>
 			<!-- to prosperity -->
 			<Type>FreedomBonus</Type>
