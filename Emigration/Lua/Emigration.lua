@@ -23,15 +23,7 @@ local notifications = {};	-- list of notifications to be shown on a player's tur
 --------------------------------------------------------------
 function IsCityMigrationAllowed (toCity, fromTeam)
   if not toCity then return false end
-  
-  print(string.format("%15s revealed=%s food=%+d blockaded=%s resist=%s razing=%s",
-    toCity:GetName(), 
-    tostring(toCity:IsRevealed(fromTeam)), 
-    toCity:FoodDifference(),
-    tostring(toCity:IsBlockaded()), 
-    tostring(toCity:IsResistance()), 
-    tostring(toCity:IsRazing())))
-    
+ 
   return toCity:IsRevealed(fromTeam)
            and toCity:FoodDifference() >= 0
            and not toCity:IsBlockaded()
@@ -55,24 +47,18 @@ function GetProsperityRating(player)
 		end
 	end
 	table.sort(prosperityRating, function(c1, c2) return c1.prosp > c2.prosp end);	-- sort cities by prosperity in descending order
-  print ("----------------- RETURN PROSP RATING ----------------")
 	return prosperityRating;
 end
 --------------------------------------------------------------
+-- Split up the original MetAndNoWar because I use
+-- the data in other information output.
 function HasMetWar(playerA, playerB)
   if playerA == playerB then return true, false end
 	local teamA = Teams[playerA:GetTeam()];
 	local teamB = Teams[playerB:GetTeam()];
-  --[[
-  print(string.format("playerA=%s teamA=%s teamAIdx=%s playerB=%s teamB=%s teamBIdx=%s",
-    playerA:GetName(), tostring(teamA), tostring(playerA:GetTeam()),
-    playerB:GetName(), tostring(teamB), tostring(playerB:GetTeam())))
-  print(string.format("met=%s metTeamByIdx=%s war=%s warTeamByIdx=%s",
-    tostring(teamA:IsHasMet(teamB)), tostring(teamA:IsHasMet(playerB:GetTeam())),
-    tostring(teamA:IsAtWar(teamB)), tostring(teamA:IsAtWar(playerB:GetTeam()))))
-  --]]
   return teamA:IsHasMet(playerB:GetTeam()), teamA:IsAtWar(playerB:GetTeam())
 end
+
 function MetAndNoWar(playerA, playerB)
   local met, war = HasMetWar(playerA, playerB)
   return met and not war
@@ -87,13 +73,13 @@ function Migration(iPlayer)		-- executed at the start of an each player's turn
 		return;
 	end
 
-  print("---------MIGRATION-------------------")
+  print("-----MIGRATION-----------------------")
   local elapsedTime = os.clock()
 
 	print(GetPlayerName(player) .. " - Turn " .. Game.GetGameTurn());
 	local destList = GetProsperityRating(player);
 	if # destList < 2 then	-- # returns number of elements
-		print("---------END MIGRATION (DESTS)-------")
+		print("-----END MIGRATION (NO DESTS)--------")
 		return;
 	end
 
@@ -259,41 +245,25 @@ function MoveCitizen(fromCity, toCity, fromProsp, toProsp)
   print(" - TO   " .. GetProsperityDebugString(toCity))
   print("-------------------------------------")
 
-  -- DEBUG: debugMetWar
-  --   Attempting to track down the case where emigration happens
-  --   to an unmet civilization or to one at war, both of which
-  --   should not happen.
-  local met, war = HasMetWar(fromPlayer, toPlayer)
-  local debugMetWar = " ("
-  if not met then debugMetWar = debugMetWar .. "un" end
-  debugMetWar = debugMetWar .. "met, "
-  if war then 
-    debugMetWar = debugMetWar .. "war"
-  else
-    debugMetWar = debugMetWar .. "peace"
-  end
-  debugMetWar = debugMetWar .. ") "
-  
 	if fromPlayer:IsHuman() and fromPlayer ~= toPlayer then	-- show only in case of foreign emigration
-  -- DEBUG: debugMetWar
   local destination = GetPlayerName(toPlayer);
 		--local summary = "A [ICON_CITIZEN] citizen from " .. fromCity:GetName() .. " left for the " .. destination;
 		--print("creating a notification");
-		local smr = Locale.ConvertTextKey("TXT_KEY_EMIGRATION_SUMMARY", fromCity:GetName(), destination .. debugMetWar, 
+		local smr = Locale.ConvertTextKey("TXT_KEY_EMIGRATION_SUMMARY", fromCity:GetName(), destination, 
       string.format("%.1f", fromProsp), string.format ("%.1f", toProsp));
 		local txt = Locale.ConvertTextKey("TXT_KEY_EMIGRATION_TEXT", destination);
 		table.insert(notifications, { type = "Emigration", text = txt, summary = smr, city = fromCity });
 	elseif toPlayer:IsHuman() then
 		local source = fromCity:GetName();
 		if fromPlayer ~= toPlayer then
-      -- DS: Ideally, need a new TXT_KEYs for this case. The original author was lazy, too, and
+      -- Ideally, need a new TXT_KEYs for this case. The original author was lazy, too, and
       -- overloaded the TXT_KEY ("the Roman Empire" or "the Boston", as good and bad examples).
       -- I also did not update non-English translations parameters.
-			source = "the " .. GetPlayerName(fromPlayer);
+			source = string.format ("the %s", GetPlayerName(fromPlayer))
 		end
     
 		--local summary = "A [ICON_CITIZEN] citizen from " .. source .. " came to " .. toCity:GetName();
-		local smr = Locale.ConvertTextKey("TXT_KEY_IMMIGRATION_SUMMARY", source .. debugMetWar, toCity:GetName(),
+		local smr = Locale.ConvertTextKey("TXT_KEY_IMMIGRATION_SUMMARY", source, toCity:GetName(),
       string.format("%.1f", fromProsp), string.format ("%.1f", toProsp));
 		local txt = Locale.ConvertTextKey("TXT_KEY_IMMIGRATION_TEXT", source);
 		table.insert(notifications, { type = "Immigration", text = txt, summary = smr, city = toCity });
@@ -315,13 +285,13 @@ function OnPopulationChange(iHexX, iHexY, iPopulation, iUnknown)
   -- This will fire on the from- and to-cities, but we only
   -- want to do something for the from-city.
   local modData = AccessData(pPlot, "Emigration");
-  local iOldPopulation = modData.lastPopulation or 0
-  
-  local dPop = iPopulation - iOldPopulation
 
   --[[
   if pCity then
+    local iOldPopulation = modData.lastPopulation or 0
+    local dPop = iPopulation - iOldPopulation
     local iOwner = pCity:GetOwner()
+
     print(string.format("%s (owned by %s) population %d (%+d)", 
       pCity:GetName(), Players[iOwner]:GetName(), iPopulation, dPop))
   end
